@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juego de Memoria</title>
+  <!-- React y ReactDOM desde CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel para JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+      background: #f0f8ff;
+      background-image: url('fondo.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    @font-face {
+        font-family: 'Krabby Patty.ttf';
+        src: url('Krabby Patty.ttf') format('truetype');
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      font-family: 'Krabby Patty.ttf', sans-serif;
+      font-size: 3rem;
+      color: #ffc800;
+    }
+
+    .counter {
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: #ffc800;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      grid-gap: 20px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 20px;
+      border-radius: 15px;
+    }
+
+    .card {
+      width: 100px;
+      height: 100px;
+      perspective: 1000px;
+
+    }
+
+    .inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+
+    .flipped {
+      transform: rotateY(180deg);
+    }
+
+    .front, .back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 54px;
+      font-weight: bold;
+    }
+
+    .front {
+      background: #f1cf78;
+      color: white;
+      transform: rotateY(180deg);
+    }
+
+    .back {
+      background: #2196F3;
+      color: rgb(255, 255, 255);
+    }
+
+    .completed-message {
+      margin-top: 20px;
+      font-size: 24px;
+      color: rgb(251, 251, 251);
+
+    }
+  </style>
+</head>
+<body>
+  <h1>Juego de Memoria</h1>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+//Arreglo para los valores en las cartas
+    const cardsArray = ['🪼', '🐳', '🦈', '🐙', '🐚', '🐡', '🦞', '🦀'];
+
+    //Función para mezclar las cartas al azar usando el algoritmo de Fisher-Yates
+    function shuffle(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+//Función que contiene el juego de memoria
+    function MemoryGame() {
+      const [cards, setCards] = useState([]); //Guarda las cartas mezcladas
+      const [flipped, setFlipped] = useState([]); //Guarda las cartas que están temporalmente volteadas
+      const [matched, setMatched] = useState([]); //Guarda las cartas que se encontraron y son pareja
+      const [moves, setMoves] = useState(0); //Guarda la cantidad de movimientos
+      const [gameCompleted, setGameCompleted] = useState(false); //Si el juego fue completado o no
+
+//Al iniciar el juego, se duplican las cartas y se mezclan
+      useEffect(() => {
+        const doubledCards = shuffle([...cardsArray, ...cardsArray]);
+        setCards(doubledCards);
+      }, []);
+
+//Para determinar si se ganó (Si el número de cartas encontradas es igual al total)
+      useEffect(() => {
+        if (matched.length === cards.length && cards.length > 0) {
+          setGameCompleted(true);
+        }
+      }, [matched]);
+
+//Cuando se hace click en una carta
+      const handleClick = (index) => {
+        if (flipped.length === 2 || flipped.includes(index) || matched.includes(index)) return;
+
+        const newFlipped = [...flipped, index];
+        setFlipped(newFlipped);
+
+        if (newFlipped.length === 2) {
+          setMoves(moves + 1); //se cuenta el movimiento realizado
+          const [first, second] = newFlipped;
+
+          //Si las cartas son iguales
+          if (cards[first] === cards[second]) {
+            setMatched([...matched, first, second]); //Se marca como pareja encontrada
+            setFlipped([]);
+          } else {
+            //se espera 1 segundo para volverlas a voltear si no son iguales
+            setTimeout(() => {
+              setFlipped([]);
+            }, 1000);
+          }
+        }
+      };
+//Renderizado
+      return (
+        <div>
+          <div className="counter">Movimientos: {moves}</div>
+          <div className="grid">
+            {cards.map((card, index) => (
+              <div key={index} className="card" onClick={() => handleClick(index)}>
+                <div className={`inner ${flipped.includes(index) || matched.includes(index) ? 'flipped' : ''}`}>
+                  <div className="front">{card}</div>
+                  <div className="back">🌀</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {gameCompleted && <div className="completed-message">¡Juego completado en {moves} movimientos!</div>}
+        </div>
+      );
+    }
+//Renderizar en el html
+    ReactDOM.createRoot(document.getElementById('root')).render(<MemoryGame />);
+  </script>
+</body>
+</html>
